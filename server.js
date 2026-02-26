@@ -1,18 +1,17 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const path = require('path');
 
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
 const IOPROOF_URL = process.env.IOPROOF_URL || 'https://proxy.ioproof.com/v1/openai/chat/completions';
-const IOPROOF_KEY = process.env.IOPROOF_KEY;
-const MODEL = process.env.MODEL || 'gpt-3.5-turbo';
+const IOPROOF_KEY = process.env.IOPROOF_KEY || 'iop_live_88d2d38b58a175eee55a58cd1e721dc5e74fab5c';
+const MODEL      = process.env.MODEL || 'gpt-3.5-turbo';
 
 if (!IOPROOF_KEY) {
-  console.error('ERRO: IOPROOF_KEY não definida. Configure o arquivo .env');
+  console.error('ERRO: IOPROOF_KEY não definida.');
   process.exit(1);
 }
 
@@ -40,7 +39,7 @@ app.post('/api/perguntar', async (req, res) => {
     );
     res.json(response.data);
   } catch (err) {
-    const status = err.response?.status || 500;
+    const status  = err.response?.status || 500;
     const message = err.response?.data?.error?.message || err.message || 'Erro desconhecido';
     console.error(`[${status}] ${message}`);
     res.status(status).json({ error: message });

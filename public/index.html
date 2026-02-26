@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat IA com IOProof</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; color: #7c3aed; }
+    #chat {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .msg {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg.user  { background: #1e293b; align-self: flex-end; max-width: 80%; }
+    .msg.bot   { background: #1a1a2e; border-left: 3px solid #7c3aed; max-width: 90%; }
+    .msg.error { background: #3b0a0a; border-left: 3px solid #ef4444; }
+    form {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 1rem;
+      outline: none;
+    }
+    input:focus { border-color: #7c3aed; }
+    button {
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      background: #7c3aed;
+      color: #fff;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover:not(:disabled) { background: #6d28d9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #proof-link {
+      width: 100%;
+      max-width: 720px;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    #proof-link a { color: #7c3aed; text-decoration: none; }
+    #proof-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>⚡ Chat IA · IOProof</h1>
+
+  <div id="chat"></div>
+  <div id="proof-link"></div>
+
+  <form id="form">
+    <input
+      type="text"
+      id="pergunta"
+      placeholder="Digite sua pergunta..."
+      autocomplete="off"
+      required
+    />
+    <button type="submit" id="btn">Enviar</button>
+  </form>
+
+  <script>
+    const form    = document.getElementById('form');
+    const input   = document.getElementById('pergunta');
+    const btn     = document.getElementById('btn');
+    const chat    = document.getElementById('chat');
+    const proofEl = document.getElementById('proof-link');
+
+    function addMsg(text, type) {
+      const div = document.createElement('div');
+      div.className = `msg ${type}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      return div;
+    }
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      addMsg(prompt, 'user');
+      input.value = '';
+      btn.disabled = true;
+      proofEl.innerHTML = '';
+      const thinking = addMsg('...', 'bot');
+
+      try {
+        const res  = await fetch('/api/perguntar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          thinking.className = 'msg error';
+          thinking.textContent = 'Erro: ' + (data.error || res.statusText);
+          return;
+        }
+
+        const answer = data.choices?.[0]?.message?.content ?? JSON.stringify(data);
+        thinking.textContent = answer;
+
+        // Exibe link de prova IOProof, se disponível
+        const proofUrl = data.proof_url || data.ioproof?.proof_url || data.ioproof?.url;
+        if (proofUrl) {
+          proofEl.innerHTML = `🔍 <a href="${proofUrl}" target="_blank" rel="noopener">Ver prova IOProof</a>`;
+        }
+      } catch (err) {
+        thinking.className = 'msg error';
+        thinking.textContent = 'Erro de rede: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        input.focus();
+      }
+    };
+  </script>
+</body>
+</html>
